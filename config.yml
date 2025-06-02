@@ -1,0 +1,34 @@
+---
+directory:
+  department_base_url: <%= ENV["DIRECTORY_DEPARTMENT_BASE_URL"] %>
+  people: <%= ENV["DIRECTORY_PEOPLE"] %>
+  supervisors: <%= ENV["DIRECTORY_SUPERVISORS"] %>
+
+qualtrics:
+  api_token: <%= ENV["QUALTRICS_API_TOKEN"] %>
+  data_center_id: "yul1"
+  survey_id: <%= ENV["QUALTRICS_SURVEY_ID"] %>
+
+reports:
+  clean: false
+  sync: true
+  fiscal_years:
+  - null
+  - "24-25"
+  meetings:
+  - name: "Initial Planning"
+    code: "00"
+  - name: "First Check-in"
+    code: "01"
+  - name: "Second Check-in"
+    code: "02"
+  - name: "End of Year Meeting"
+    code: "03"
+  credentials: google-credentials.json
+  remote_root: "IAP Reports"
+  local_root: "out"
+# fy: "24-25"
+# meeting: "Initial Planning"
+# meeting: "First Check-in"
+# meeting: "Second Check-in"
+# meeting: "End of Year Meeting"

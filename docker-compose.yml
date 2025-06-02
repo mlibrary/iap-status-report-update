@@ -1,0 +1,14 @@
+---
+services:
+ app:
+    build:
+      target: development
+      context: .
+    env_file:
+    - .env
+    volumes:
+    - .:/app
+    - bundle:/bundle
+
+volumes:
+  bundle:
