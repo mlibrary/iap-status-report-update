@@ -16,6 +16,15 @@ class Person
     @data.dig("field_user_display_name", 0, "value")
   end
 
+  def first_name
+    @data.dig("field_user_first_name", 0, "value")
+  end
+
+  def last_name
+    @data.dig("field_user_last_name", 0, "value")
+  end
+
+
   def field_user_department
     @data["field_user_department"]
   end
