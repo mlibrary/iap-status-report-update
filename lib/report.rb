@@ -58,8 +58,11 @@ class Report
               csv << header
               completed = 0
               responded = 0
+              direct_reports_length = 0
               direct_reports = @directory.direct_reports_for(supervisor)
               direct_reports.each do |employee|
+                next if @config["exclude"].include?(employee.email)
+                direct_reports_length += 1
                 employee_responses = @responses.get(email: employee.email, fy: fy, meeting: meeting)
                 employee_columns = employee.report_columns
                 response_columns = if employee_responses.length < 1
@@ -77,9 +80,9 @@ class Report
               csv << []
               csv << ["Manager: #{supervisor.display_name}"]
               csv << ["Exported on: #{Time.now}"]
-              if direct_reports.length > 0
-                csv << [(SUBMITTED_SUMMARY % [100.0 * responded / direct_reports.length ])]
-                csv << [(QUESTIONS_SUMMARY % [100.0 * completed / direct_reports.length ])]
+              if direct_reports_length > 0
+                csv << [(SUBMITTED_SUMMARY % [100.0 * responded / direct_reports_length ])]
+                csv << [(QUESTIONS_SUMMARY % [100.0 * completed / direct_reports_length ])]
               end
             end
           end
@@ -91,9 +94,12 @@ class Report
               csv << header
               completed = 0
               responded = 0
+              department_members_length = 0
               department.members.each do |member|
                 next if member.email == department.manager.email
+                next if @config["exclude"].include?(member.email)
                 full_length += 1
+                department_members_length += 1
                 member_responses = @responses.get(email: member.email, fy: fy, meeting: meeting)
                 member_columns = member.report_columns
                 response_columns = if member_responses.length < 1
@@ -114,9 +120,9 @@ class Report
               csv << []
               csv << ["Manager: #{department.manager.display_name}"]
               csv << ["Exported on: #{Time.now}"]
-              if department.members.length > 0
-                csv << [(SUBMITTED_SUMMARY % [100.0 * responded / department.members.length ])]
-                csv << [(QUESTIONS_SUMMARY % [100.0 * completed / department.members.length ])]
+              if department_members_length > 0
+                csv << [(SUBMITTED_SUMMARY % [100.0 * responded / department_members_length ])]
+                csv << [(QUESTIONS_SUMMARY % [100.0 * completed / department_members_length ])]
               end
             end
           end

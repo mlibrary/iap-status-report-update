@@ -27,3 +27,6 @@ reports:
   credentials: google-credentials.json
   remote_root: "IAP Reports"
   local_root: "out"
+  exclude:
+  - lisarc@umich.edu
+  - furlough@umich.edu
