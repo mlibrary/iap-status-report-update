@@ -4,7 +4,7 @@ class Report
   DS_PINK_300 = { red: 0xEC/255.0, green: 0x69/255.0, blue: 0x69/255.0 }
   DS_MAIZE_300  = { red: 1.0, green: 0xDA / 255.0, blue: 0x50 / 255.0 }
   DS_MAIZE_200 = { red: 1.0, green: 0xEA / 255.0, blue: 0x9B / 255.0 }
-  DS_PINK_200 = { red: 0xF2 / 255.0, green: 0x9D / 255.0, 0x9D / 255.0 }
+  DS_PINK_200 = { red: 0xF2 / 255.0, green: 0x9D / 255.0, blue: 0x9D / 255.0 }
   DS_NEUTRAL_200 = { red: 0x7A / 255.0, green: 0x96 / 255.0, blue: 0xA1 / 255.0}
 
 
