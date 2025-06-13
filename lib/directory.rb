@@ -53,6 +53,14 @@ class Directory
   end
 
   def each_person
-    @people.values.each { |item| yield item }
+    @people.values.uniq.each { |item| yield item }
+  end
+
+  def each_supervisor
+    @people.values.map(&:supervisor).compact.uniq.each { |item| yield item }
+  end
+
+  def direct_reports_for(supervisor)
+    @people.values.select { |person| person.supervisor == supervisor }.uniq
   end
 end

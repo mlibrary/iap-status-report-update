@@ -8,20 +8,31 @@ class Report
   DS_NEUTRAL_200 = { red: 0x7A / 255.0, green: 0x96 / 255.0, blue: 0xA1 / 255.0}
 
 
+  SUBMITTED_SUMMARY = "Submitted the Qualtrics form: %3.2f%%"
+  QUESTIONS_SUMMARY = "Answered 'Yes' to the primary questions on the Qualtrics form: %3.2f%%"
+
   def initialize(directory: , responses: , config: )
     @config = config
     @directory = directory
     @responses = responses
   end
 
-  def file_name(department:, fy:, code:, meeting:)
-    "out/#{department}/#{fy || "23-24"}/IAP Status Report - #{department} - #{fy || "23-24"} - #{code} #{meeting}.csv"
+  def file_name(department: nil, supervisor: nil, full: false, fy:, code:, meeting:)
+    if full
+      "out/Full/#{fy}/IAP Status Report - Full - #{fy} - #{code} #{meeting}.csv"
+    elsif department
+      "out/By Department/IAP Status Reports - #{department}/#{fy}/IAP Status Report - #{department} - #{fy} - #{code} #{meeting}.csv"
+    elsif supervisor
+      "out/By Supervisor/IAP Status Reports - #{supervisor}/#{fy}/IAP Status Report - #{supervisor} - #{fy} - #{code} #{meeting}.csv"
+    else
+      raise "Must be one of full, department or supervisor."
+    end
   end
 
   def write
     clean if @config["clean"]
     header = [
-      "Name", "First Name", "Last Name", "Email", "Division (staff.lib)", "Department (staff.lib)", "Supervisor (staff.lib)",
+      "First Name", "Last Name", "Division (staff.lib)", "Department (staff.lib)", "Supervisor (staff.lib)",
       "FY", "Meeting",
       "Status", "Did you fill out your IAP for this meeting?", "Did you and your supervisor meet to discuss your IAP?",
       "Did your supervisor add feedback to your IAP?", "Why did you answer no on the other question(s)?", "Supervisor (qualtrics)",
@@ -30,14 +41,49 @@ class Report
     @config["fiscal_years"].each do |fy|
       @config["meetings"].each do |meeting_info|
         meeting = meeting_info["name"]
+        config_columns = [ fy, meeting ]
         code = meeting_info["code"]
-        full_file = file_name(department: "Full", fy: fy, code: code, meeting: meeting)
+        full_file = file_name(full: true, fy: fy, code: code, meeting: meeting)
         FileUtils.mkdir_p(File.dirname(full_file))
         CSV.open(full_file, "wb") do |full_csv|
           full_csv << header
           full_length = 0
           full_completed = 0
           full_responded = 0
+
+          @directory.each_supervisor do |supervisor|
+            file = file_name(supervisor: supervisor.display_name, fy: fy, code: code, meeting: meeting)
+            FileUtils.mkdir_p(File.dirname(file))
+            CSV.open(file, "wb") do |csv|
+              csv << header
+              completed = 0
+              responded = 0
+              direct_reports = @directory.direct_reports_for(supervisor)
+              direct_reports.each do |employee|
+                employee_responses = @responses.get(email: employee.email, fy: fy, meeting: meeting)
+                employee_columns = employee.report_columns
+                response_columns = if employee_responses.length < 1
+                  Response.empty_report_columns
+                else
+                  latest_response = employee_responses.last
+                  responded += 1
+                  if latest_response.complete?
+                    completed += 1
+                  end
+                  latest_response.report_columns
+                end
+                csv << employee_columns + config_columns + response_columns
+              end
+              csv << []
+              csv << ["Manager: #{supervisor.display_name}"]
+              csv << ["Exported on: #{Time.now}"]
+              if direct_reports.length > 0
+                csv << [(SUBMITTED_SUMMARY % [100.0 * responded / direct_reports.length ])]
+                csv << [(QUESTIONS_SUMMARY % [100.0 * completed / direct_reports.length ])]
+              end
+            end
+          end
+
           @directory.each_division do |department|
             file = file_name(department: department, fy: fy, code: code, meeting: meeting)
             FileUtils.mkdir_p(File.dirname(file))
@@ -49,48 +95,36 @@ class Report
                 next if member.email == department.manager.email
                 full_length += 1
                 member_responses = @responses.get(email: member.email, fy: fy, meeting: meeting)
-                member_columns = [ member.display_name, member.first_name, member.last_name, member.email, member.division, member.department, member.supervisor&.email ]
-                config_columns = [ fy || "23-24", meeting ]
+                member_columns = member.report_columns
                 response_columns = if member_responses.length < 1
-                  ["No Response", nil, nil, nil, nil, nil, nil, nil]
+                  Response.empty_report_columns
                 else
                   latest_response = member_responses.last
                   responded += 1
                   full_responded += 1
-                  if latest_response.filled_out == "Yes" &&
-                    latest_response.met_supervisor == "Yes" &&
-                    latest_response.supervisor_feedback == "Yes"
+                  if latest_response.complete?
                     completed += 1
                     full_completed += 1
                   end
-                  [
-                    "Responded",
-                    latest_response.filled_out,
-                    latest_response.met_supervisor,
-                    latest_response.supervisor_feedback,
-                    latest_response.why_no,
-                    latest_response.supervisors_email,
-                    latest_response.division,
-                    latest_response.department
-                  ]
+                  latest_response.report_columns
                 end
                 csv << member_columns + config_columns + response_columns
                 full_csv << member_columns + config_columns + response_columns
               end
               csv << []
-              csv << ["Manager: #{department.manager.email}"]
+              csv << ["Manager: #{department.manager.display_name}"]
               csv << ["Exported on: #{Time.now}"]
               if department.members.length > 0
-                csv << [("Responded: %3.2f%%" % [100.0 * responded / department.members.length ])]
-                csv << [("Completed: %3.2f%% (Answered 'Yes' to the three questions)" % [100.0 * completed / department.members.length ])]
+                csv << [(SUBMITTED_SUMMARY % [100.0 * responded / department.members.length ])]
+                csv << [(QUESTIONS_SUMMARY % [100.0 * completed / department.members.length ])]
               end
             end
           end
           full_csv << []
           full_csv << ["Exported on: #{Time.now}"]
           if full_length > 0
-            full_csv << [("Responded: %3.2f%%" % [100.0 * full_responded / full_length ])]
-            full_csv << [("Completed: %3.2f%% (Answered 'Yes' to the three questions)" % [100.0 * full_completed / full_length ])]
+            full_csv << [(SUBMITTED_SUMMARY % [100.0 * full_responded / full_length ])]
+            full_csv << [(QUESTIONS_SUMMARY % [100.0 * full_completed / full_length ])]
           end
         end
       end
@@ -184,7 +218,7 @@ class Report
             condition: {
               type: "CUSTOM_FORMULA",
               values: [{
-                user_entered_value: '=EQ($J2,"No Response")'
+                user_entered_value: '=EQ($H2,"No Response")'
               }]
             },
             format:  {
@@ -210,7 +244,7 @@ class Report
             condition: {
               type: "CUSTOM_FORMULA",
               values:[{
-                user_entered_value: '=OR(EQ($K2, "No"), EQ($L2, "No"), EQ($M2, "No"))'
+                user_entered_value: '=OR(EQ($I2, "No"), EQ($J2, "No"), EQ($K2, "No"))'
               }]
             },
             format: {

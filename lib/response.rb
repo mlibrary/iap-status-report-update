@@ -47,10 +47,36 @@ class Response
   end
 
   def fy
-    @data[35]
+    # in 25-26 there was a column (36, Y), sent from the IAP form to indicate the year
+    # in 24-25 there was a self-reporting column (35, FY) to indicate the year
+    # in 23-24 there was no column to indicate the year (thus this is the default)
+    @data[36] || @data[35] || "23-24"
   end
 
   def initialize(row)
     @data = row
+  end
+
+  def complete?
+    filled_out == "Yes" &&
+      met_supervisor == "Yes" &&
+      supervisor_feedback == "Yes"
+  end
+
+  def self.empty_report_columns
+    ["No Response", nil, nil, nil, nil, nil, nil, nil]
+  end
+
+  def report_columns
+    [
+      "Responded",
+      filled_out,
+      met_supervisor,
+      supervisor_feedback,
+      why_no,
+      supervisors_email,
+      division,
+      department
+    ]
   end
 end

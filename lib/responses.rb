@@ -18,6 +18,7 @@ class Responses
       header[31] == "Email" &&
       header[34] == "meeting" &&
       header[35] == "FY"
+      header[36] == "Y"
 
     puts "CSV DATA has an inconsistent header."
     raise "CSV DATA has an inconsistent header."

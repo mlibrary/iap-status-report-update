@@ -24,6 +24,9 @@ class Person
     @data.dig("field_user_last_name", 0, "value")
   end
 
+  def report_columns
+    [first_name, last_name, division, department, supervisor&.display_name]
+  end
 
   def field_user_department
     @data["field_user_department"]

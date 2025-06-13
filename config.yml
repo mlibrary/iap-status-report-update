@@ -13,7 +13,7 @@ reports:
   clean: false
   sync: true
   fiscal_years:
-  - null
+  - "23-24"
   - "24-25"
   meetings:
   - name: "Initial Planning"
@@ -27,8 +27,3 @@ reports:
   credentials: google-credentials.json
   remote_root: "IAP Reports"
   local_root: "out"
-# fy: "24-25"
-# meeting: "Initial Planning"
-# meeting: "First Check-in"
-# meeting: "Second Check-in"
-# meeting: "End of Year Meeting"
