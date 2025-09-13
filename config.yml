@@ -13,8 +13,8 @@ reports:
   clean: false
   sync: true
   fiscal_years:
-  - "23-24"
   - "24-25"
+  - "25-26"
   meetings:
   - name: "Initial Planning"
     code: "00"

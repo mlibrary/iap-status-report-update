@@ -17,6 +17,10 @@ class Report
     @responses = responses
   end
 
+  def all_yes_filename(fy:)
+    "out/Full/#{fy}/IAP Status Report - All Yes Submissions - #{fy}.csv"
+  end
+
   def file_name(department: nil, supervisor: nil, full: false, fy:, code:, meeting:)
     if full
       "out/Full/#{fy}/IAP Status Report - Full - #{fy} - #{code} #{meeting}.csv"
@@ -39,6 +43,7 @@ class Report
       "Division (qualtrics)", "Department (qualtrics)"
     ]
     @config["fiscal_years"].each do |fy|
+      all_yes_submissions = {}
       @config["meetings"].each do |meeting_info|
         meeting = meeting_info["name"]
         config_columns = [ fy, meeting ]
@@ -88,6 +93,7 @@ class Report
           end
 
           @directory.each_division do |department|
+            all_yes_submissions[department] ||= []
             file = file_name(department: department, fy: fy, code: code, meeting: meeting)
             FileUtils.mkdir_p(File.dirname(file))
             CSV.open(file, "wb") do |csv|
@@ -123,6 +129,7 @@ class Report
               if department_members_length > 0
                 csv << [(SUBMITTED_SUMMARY % [100.0 * responded / department_members_length ])]
                 csv << [(QUESTIONS_SUMMARY % [100.0 * completed / department_members_length ])]
+                all_yes_submissions[department] << 100.0 * completed / department_members_length
               end
             end
           end
@@ -134,6 +141,15 @@ class Report
           end
         end
       end
+      all_yes_file = all_yes_filename(fy: fy)
+      FileUtils.mkdir_p(File.dirname(all_yes_file))
+      all_yes_csv = CSV.open(all_yes_file, "wb")
+      all_yes_csv << ["Unit"] + @config["meetings"].map { |m| m["name"] }
+      all_yes_submissions.each_pair do |department, meetings|
+        all_yes_csv << [department] + meetings
+      end
+      all_yes_csv << []
+      all_yes_csv << ["Exported on: #{Time.now}"]
     end
     sync if @config["sync"]
     self
@@ -284,20 +300,30 @@ class Report
     remote_root = @session.files(q: ["name = ?", remote_root_name]).find { |file| file.title == remote_root_name }
     files = Dir.glob("#{local_root_name}/**/*.csv")
     files.each do |file|
-      file_name = File.basename(file, ".csv")
-      relative_path = File.dirname(file[(local_root_name.length + 1)..file.length])
-      current_folder = remote_root
-      relative_path.split("/").each do |part|
-        candidate = current_folder.files(q: ["name = ?", part]).find { |f| f.title == part }
-        current_folder = candidate ? candidate : current_folder.create_subcollection(part)
+      retries = 5
+      begin
+        file_name = File.basename(file, ".csv")
+        relative_path = File.dirname(file[(local_root_name.length + 1)..file.length])
+        current_folder = remote_root
+        relative_path.split("/").each do |part|
+          candidate = current_folder.files(q: ["name = ?", part]).find { |f| f.title == part }
+          current_folder = candidate ? candidate : current_folder.create_subcollection(part)
+        end
+        candidate = current_folder.files(q: ["name = ?", file_name]).find { |f| f.title == file_name }
+        if candidate
+          candidate.update_from_file(file)
+        else
+          candidate = current_folder.upload_from_file(file, file_name)
+        end
+        style(candidate)
+      rescue => e
+        retries -= 1
+        puts "Error syncing #{file}: #{e}"
+        puts e.backtrace
+        puts "Retrying (#{retries} attempts left)..."
+        sleep 3
+        retry if retries > 0
       end
-      candidate = current_folder.files(q: ["name = ?", file_name]).find { |f| f.title == file_name }
-      if candidate
-        candidate.update_from_file(file)
-      else
-        candidate = current_folder.upload_from_file(file, file_name)
-      end
-      style(candidate)
     end
     self
   end
