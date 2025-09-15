@@ -10,6 +10,7 @@ class Report
 
   SUBMITTED_SUMMARY = "Submitted the Qualtrics form: %3.2f%%"
   QUESTIONS_SUMMARY = "Answered 'Yes' to the primary questions on the Qualtrics form: %3.2f%%"
+  ALL_YES_SUMMARY = "%3.0f%%"
 
   def initialize(directory: , responses: , config: )
     @config = config
@@ -129,7 +130,7 @@ class Report
               if department_members_length > 0
                 csv << [(SUBMITTED_SUMMARY % [100.0 * responded / department_members_length ])]
                 csv << [(QUESTIONS_SUMMARY % [100.0 * completed / department_members_length ])]
-                all_yes_submissions[department] << 100.0 * completed / department_members_length
+                all_yes_submissions[department] << ALL_YES_SUMMARY % [100.0 * completed / department_members_length]
               end
             end
           end
@@ -151,8 +152,11 @@ class Report
       all_yes_csv << []
       all_yes_csv << ["Exported on: #{Time.now}"]
     end
-    sync if @config["sync"]
     self
+  end
+
+  def sync?
+    @config["sync"]
   end
 
   def clean

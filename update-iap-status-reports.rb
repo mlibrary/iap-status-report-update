@@ -25,3 +25,7 @@ report = Report.new(config: config["reports"], directory: directory, responses: 
 puts "Writing the reports."
 
 report.write
+if report.sync?
+  puts "Syncing the reports to Google Drive."
+  report.sync
+end
