@@ -12,6 +12,16 @@ class Report
   QUESTIONS_SUMMARY = "Answered 'Yes' to the primary questions on the Qualtrics form: %3.2f%%"
   ALL_YES_SUMMARY = "%3.0f%%"
 
+  MUTEX = Mutex.new
+  POOL_SIZE = ENV.fetch("POOL_SIZE", 4).to_i
+  QUEUE_SIZE = ENV.fetch("QUEUE_SIZE", 1).to_i
+  POOL = Concurrent::ThreadPoolExecutor.new(
+    min_threads: POOL_SIZE,
+    max_threads: POOL_SIZE,
+    max_queue: QUEUE_SIZE,
+    fallback_policy: :caller_runs
+  )
+
   def initialize(directory: , responses: , config: )
     @config = config
     @directory = directory
@@ -304,29 +314,31 @@ class Report
     remote_root = @session.files(q: ["name = ?", remote_root_name]).find { |file| file.title == remote_root_name }
     files = Dir.glob("#{local_root_name}/**/*.csv")
     files.each do |file|
-      retries = 5
-      begin
-        file_name = File.basename(file, ".csv")
-        relative_path = File.dirname(file[(local_root_name.length + 1)..file.length])
-        current_folder = remote_root
-        relative_path.split("/").each do |part|
-          candidate = current_folder.files(q: ["name = ?", part]).find { |f| f.title == part }
-          current_folder = candidate ? candidate : current_folder.create_subcollection(part)
+      POOL.post do
+        retries = 5
+        begin
+          file_name = File.basename(file, ".csv")
+          relative_path = File.dirname(file[(local_root_name.length + 1)..file.length])
+          current_folder = remote_root
+          relative_path.split("/").each do |part|
+            candidate = current_folder.files(q: ["name = ?", part]).find { |f| f.title == part }
+            current_folder = candidate ? candidate : current_folder.create_subcollection(part)
+          end
+          candidate = current_folder.files(q: ["name = ?", file_name]).find { |f| f.title == file_name }
+          if candidate
+            candidate.update_from_file(file)
+          else
+            candidate = current_folder.upload_from_file(file, file_name)
+          end
+          style(candidate)
+        rescue => e
+          retries -= 1
+          puts "Error syncing #{file}: #{e}"
+          puts e.backtrace
+          puts "Retrying (#{retries} attempts left)..."
+          sleep 3
+          retry if retries > 0
         end
-        candidate = current_folder.files(q: ["name = ?", file_name]).find { |f| f.title == file_name }
-        if candidate
-          candidate.update_from_file(file)
-        else
-          candidate = current_folder.upload_from_file(file, file_name)
-        end
-        style(candidate)
-      rescue => e
-        retries -= 1
-        puts "Error syncing #{file}: #{e}"
-        puts e.backtrace
-        puts "Retrying (#{retries} attempts left)..."
-        sleep 3
-        retry if retries > 0
       end
     end
     self
