@@ -2,7 +2,7 @@
 # Base #
 ########
 
-FROM ruby:2.4 as base
+FROM ruby:2.4@sha256:c15e108473724fd2fde6045657f905b411eea638be1ca97713a462e90db78da7 as base
 
 ARG UID=1000
 ARG GID=1000
