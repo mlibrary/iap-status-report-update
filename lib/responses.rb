@@ -6,19 +6,16 @@ class Responses
       header[18] == "Q13_2" &&
       header[19] == "Q13_3" &&
       header[20] == "Q3" &&
-      header[21] == "Q10" &&
-      header[22] == "Q8" &&
-      header[23] == "Q9" &&
-      header[24] == "Q10" &&
-      header[25] == "Q11" &&
-      header[26] == "Q12" &&
-      header[27] == "Q13" &&
-      header[28] == "Q14" &&
-      header[29] == "Q4" &&
-      header[31] == "Email" &&
-      header[34] == "meeting" &&
-      header[35] == "FY"
-      header[36] == "Y"
+      header[21] == "Q4" &&
+      header[22] == "On Track or Not" &&
+      header[23] == "Q7_1" &&
+      header[24] == "Email" &&
+      header[25] == "FirstNameSSO" &&
+      header[26] == "LastNameSSO" &&
+      header[27] == "meeting" &&
+      header[28] == "FY" &&
+      header[29] == "Y" &&
+      header[30] == "ShortDate"
 
     puts "CSV DATA has an inconsistent header."
     raise "CSV DATA has an inconsistent header."

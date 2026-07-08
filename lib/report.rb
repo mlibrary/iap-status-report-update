@@ -51,7 +51,7 @@ class Report
       "FY", "Meeting",
       "Status", "Did you fill out your IAP for this meeting?", "Did you and your supervisor meet to discuss your IAP?",
       "Did your supervisor add feedback to your IAP?", "Why did you answer no on the other question(s)?", "Supervisor (qualtrics)",
-      "Division (qualtrics)", "Department (qualtrics)"
+      "On Track or Not"
     ]
     @config["fiscal_years"].each do |fy|
       all_yes_submissions = {}
