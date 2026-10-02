@@ -322,7 +322,7 @@ class Report
           current_folder = remote_root
           relative_path.split("/").each do |part|
             candidate = current_folder.files(q: ["name = ?", part]).find { |f| f.title == part }
-            current_folder = candidate ? candidate : current_folder.create_subcollection(part)
+            current_folder = candidate ? candidate : current_folder.create_subcollection(part).tap { |f| sleep 15 }
           end
           candidate = current_folder.files(q: ["name = ?", file_name]).find { |f| f.title == file_name }
           if candidate
